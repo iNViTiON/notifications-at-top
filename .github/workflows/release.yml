@@ -1,0 +1,33 @@
+name: Release on push to main
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Build
+        run: ${{ github.workspace }}/build.cmd
+      - name: Tag for release
+        id: tag
+        run: |
+          $Env:TAG=(Get-Date -Format s).Replace(':','-').Replace('T','-')
+          "tag=$Env:TAG" >> $Env:GITHUB_OUTPUT
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git tag -a $Env:TAG -m "Published version $Env:TAG" ${{ github.sha }}
+          git push origin $Env:TAG
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: topnotify.exe
+          tag_name: ${{ steps.tag.outputs.tag }}
